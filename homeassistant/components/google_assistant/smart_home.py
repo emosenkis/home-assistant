@@ -15,16 +15,18 @@ from homeassistant.const import (
     SERVICE_TURN_OFF, SERVICE_TURN_ON
 )
 from homeassistant.components import (
-    switch, light, cover, media_player, group, fan, scene
+    switch, light, cover, media_player, group, fan, scene, climate
 )
 
 from .const import (
     ATTR_GOOGLE_ASSISTANT_NAME,
     COMMAND_BRIGHTNESS, COMMAND_ONOFF, COMMAND_ACTIVATESCENE,
+    COMMAND_THERMOSTAT_TEMPERATURE_SETPOINT,
+    COMMAND_THERMOSTAT_TEMPERATURE_SET_RANGE, COMMAND_THERMOSTAT_SET_MODE,
     TRAIT_ONOFF, TRAIT_BRIGHTNESS, TRAIT_COLOR_TEMP,
-    TRAIT_RGB_COLOR, TRAIT_SCENE,
-    TYPE_LIGHT, TYPE_SCENE, TYPE_SWITCH,
-    CONF_ALIASES,
+    TRAIT_RGB_COLOR, TRAIT_SCENE, TRAIT_TEMPERATURE_SETTING,
+    TYPE_LIGHT, TYPE_SCENE, TYPE_SWITCH, TYPE_THERMOSTAT,
+    CONF_ALIASES, CLIMATE_SUPPORTED_MODES
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,11 +55,12 @@ MAPPING_COMPONENT = {
             media_player.SUPPORT_VOLUME_SET: TRAIT_BRIGHTNESS
         }
     ],
+    climate.DOMAIN: [TYPE_THERMOSTAT, TRAIT_TEMPERATURE_SETTING, None],
 }  # type: Dict[str, list]
 
 
 def make_actions_response(request_id: str, payload: dict) -> dict:
-    """Helper to simplify format for response."""
+    """Make response message."""
     return {'requestId': request_id, 'payload': payload}
 
 
@@ -94,12 +97,22 @@ def entity_to_device(entity: Entity):
         for feature, trait in class_data[2].items():
             if feature & supported > 0:
                 device['traits'].append(trait)
+    if entity.domain == climate.DOMAIN:
+        modes = ','.join(
+            m for m in entity.attributes.get(climate.ATTR_OPERATION_LIST, [])
+            if m in CLIMATE_SUPPORTED_MODES)
+        device['attributes'] = {
+            'availableThermostatModes': modes,
+            'thermostatTemperatureUnit': 'C',  # TODO: support F
+            # TODO: Support fan and swing modes, etc.
+        }
 
     return device
 
 
 def query_device(entity: Entity) -> dict:
     """Take an entity and return a properly formatted device object."""
+    # TODO: Properly support states besides on/off and brightness
     final_state = entity.state != STATE_OFF
     final_brightness = entity.attributes.get(light.ATTR_BRIGHTNESS, 255
                                              if final_state else 0)
@@ -149,6 +162,27 @@ def determine_service(entity_id: str, command: str,
         if command == COMMAND_ONOFF and params.get('on') is True:
             return (cover.SERVICE_OPEN_COVER, service_data)
         return (cover.SERVICE_CLOSE_COVER, service_data)
+
+    # special climate handling
+    if domain == climate.DOMAIN:
+        if command == COMMAND_THERMOSTAT_TEMPERATURE_SETPOINT:
+            # TODO: Support Fahrenheit
+            # TODO: Use initialTemperature as fallback?
+            service_data['temperature'] = params.get(
+                'thermostatTemperatureSetpoint', 25)
+            return (climate.SERVICE_SET_TEMPERATURE, service_data)
+        if command == COMMAND_THERMOSTAT_TEMPERATURE_SET_RANGE:
+            # TODO: Support Fahrenheit
+            # TODO: Use initialTemperature as fallback?
+            service_data['target_temp_high'] = params.get(
+                'thermostatTemperatureSetpointHigh', 25)
+            service_data['target_temp_low'] = params.get(
+                'thermostatTemperatureSetpointLow', 18)
+            return (climate.SERVICE_SET_TEMPERATURE, service_data)
+        if command == COMMAND_THERMOSTAT_SET_MODE:
+            service_data['operation_mode'] = params.get(
+                'thermostatMode', 'off')
+            return (climate.SERVICE_SET_OPERATION_MODE, service_data)
 
     if command == COMMAND_BRIGHTNESS:
         brightness = params.get('brightness')
