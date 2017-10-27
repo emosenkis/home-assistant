@@ -92,6 +92,14 @@ DETERMINE_SERVICE_TESTS = [{  # Test light brightness
         climate.SERVICE_SET_OPERATION_MODE,
         {'entity_id': 'climate.living_room', 'operation_mode': 'heat'}
     ),
+}, {  # Test climate fan mode
+    'entity_id': 'climate.living_room',
+    'command': ga.const.COMMAND_SET_MODES,
+    'params': {'updateModeSettings': {'fan': 'high'}},
+    'expected': (
+        climate.SERVICE_SET_FAN_MODE,
+        {'entity_id': 'climate.living_room', 'fan_mode': 'high'}
+    ),
 }]
 
 

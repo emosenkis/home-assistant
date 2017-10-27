@@ -175,19 +175,66 @@ DEMO_DEVICES = [{
     'name': {
         'name': 'Hvac'
     },
-    'traits': ['action.devices.traits.TemperatureSetting'],
+    'traits': [
+        'action.devices.traits.TemperatureSetting',
+        'action.devices.traits.Modes'
+    ],
     'type': 'action.devices.types.THERMOSTAT',
     'willReportState': False,
     'attributes': {
         'availableThermostatModes': 'heat,cool,off',
         'thermostatTemperatureUnit': 'C',
+        'availableModes': [
+            {
+                'name': 'fan',
+                'name_values': [{
+                    'lang': 'en',
+                    'name_synonym': ['fan', 'fan speed', 'fan mode']
+                }],
+                'settings': [
+                    {
+                        'setting_name': 'On Low',
+                        'setting_values': [
+                            {'lang': 'en', 'setting_synonym': ['On Low']}
+                            ]
+                    },
+                    {
+                        'setting_name': 'On High',
+                        'setting_values': [
+                            {'lang': 'en', 'setting_synonym': ['On High']}
+                        ]
+                    },
+                    {
+                        'setting_name': 'Auto Low',
+                        'setting_values': [
+                            {'lang': 'en', 'setting_synonym': ['Auto Low']}
+                        ]
+                    },
+                    {
+                        'setting_name': 'Auto High',
+                        'setting_values': [
+                            {'lang': 'en', 'setting_synonym': ['Auto High']}
+                        ]
+                    },
+                    {
+                        'setting_name': 'Off',
+                        'setting_values': [
+                            {'lang': 'en', 'setting_synonym': ['Off']}
+                        ]
+                    }
+                ]
+            }
+        ]
     },
 }, {
     'id': 'climate.heatpump',
     'name': {
         'name': 'HeatPump'
     },
-    'traits': ['action.devices.traits.TemperatureSetting'],
+    'traits': [
+        'action.devices.traits.TemperatureSetting',
+        'action.devices.traits.Modes'
+    ],
     'type': 'action.devices.types.THERMOSTAT',
     'willReportState': False
 }, {
@@ -195,7 +242,10 @@ DEMO_DEVICES = [{
     'name': {
         'name': 'Ecobee'
     },
-    'traits': ['action.devices.traits.TemperatureSetting'],
+    'traits': [
+        'action.devices.traits.TemperatureSetting',
+        'action.devices.traits.Modes'
+    ],
     'type': 'action.devices.types.THERMOSTAT',
     'willReportState': False
 }]

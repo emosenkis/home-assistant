@@ -21,9 +21,9 @@ from homeassistant.components import (
 from .const import (
     ATTR_GOOGLE_ASSISTANT_NAME,
     COMMAND_BRIGHTNESS, COMMAND_ONOFF, COMMAND_ACTIVATESCENE,
-    COMMAND_THERMOSTAT_TEMPERATURE_SETPOINT,
+    COMMAND_SET_MODES, COMMAND_THERMOSTAT_TEMPERATURE_SETPOINT,
     COMMAND_THERMOSTAT_TEMPERATURE_SET_RANGE, COMMAND_THERMOSTAT_SET_MODE,
-    TRAIT_ONOFF, TRAIT_BRIGHTNESS, TRAIT_COLOR_TEMP,
+    TRAIT_ONOFF, TRAIT_BRIGHTNESS, TRAIT_COLOR_TEMP, TRAIT_MODES,
     TRAIT_RGB_COLOR, TRAIT_SCENE, TRAIT_TEMPERATURE_SETTING,
     TYPE_LIGHT, TYPE_SCENE, TYPE_SWITCH, TYPE_THERMOSTAT,
     CONF_ALIASES, CLIMATE_SUPPORTED_MODES
@@ -98,13 +98,25 @@ def entity_to_device(entity: Entity):
             if feature & supported > 0:
                 device['traits'].append(trait)
     if entity.domain == climate.DOMAIN:
+        device['traits'].append(TRAIT_MODES)
         modes = ','.join(
             m for m in entity.attributes.get(climate.ATTR_OPERATION_LIST, [])
             if m in CLIMATE_SUPPORTED_MODES)
         device['attributes'] = {
             'availableThermostatModes': modes,
             'thermostatTemperatureUnit': 'C',  # TODO: support F
-            # TODO: Support fan and swing modes, etc.
+            'availableModes': [{
+                'name': 'fan',
+                'name_values': [{
+                    'name_synonym': ['fan', 'fan speed', 'fan mode'],
+                    'lang': 'en'
+                }],
+                'settings': [{
+                    'setting_name': v,
+                    'setting_values': [{'setting_synonym': [v], 'lang': 'en'}]
+                } for v in entity.attributes.get(climate.ATTR_FAN_LIST)],
+            }],
+            # TODO: Support swing modes, etc.
         }
 
     return device
@@ -183,6 +195,10 @@ def determine_service(entity_id: str, command: str,
             service_data['operation_mode'] = params.get(
                 'thermostatMode', 'off')
             return (climate.SERVICE_SET_OPERATION_MODE, service_data)
+        if command == COMMAND_SET_MODES:
+            if 'fan' in params.get('updateModeSettings', {}):
+                service_data['fan_mode'] = params['updateModeSettings']['fan']
+                return (climate.SERVICE_SET_FAN_MODE, service_data)
 
     if command == COMMAND_BRIGHTNESS:
         brightness = params.get('brightness')
